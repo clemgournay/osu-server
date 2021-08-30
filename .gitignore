@@ -3,4 +3,4 @@ package-lock.json
 
 data/beatmaps
 
-data/db/diagnostic.data
+data/db

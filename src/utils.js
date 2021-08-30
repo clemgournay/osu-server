@@ -53,9 +53,7 @@ exports.removeAllFilesInDir = (dir) => {
     if (err) throw err;
   
     for (const file of files) {
-      fs.unlink(path.join(dir, file), err => {
-        if (err) throw err;
-      });
+      fs.unlink(path.join(dir, file));
     }
   });
 }

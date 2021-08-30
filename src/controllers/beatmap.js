@@ -79,7 +79,7 @@ exports.add = async (req, res) => {
   utils.removeAllFilesInDir(oszDir);
 
   let extractDir = path.join(config.BEATMAP_DIR, 'raw');
-  if (!fs.existsSync(extractDir)) fs.mkdirSync(config.extractDir);
+  if (!fs.existsSync(extractDir)) fs.mkdirSync(extractDir);
 
   const errors = [];
   const files = req.files;
