@@ -7,10 +7,14 @@ const cors = require('cors');
 const http = require('http');
 const path = require('path');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const fs = require('fs');
+const config = require('./src/config');
+
+const oszPath = path.join(config.BEATMAP_DIR, 'osz');
+if (!fs.existsSync(oszPath)) fs.mkdirSync(oszPath);
 
 const passport = require('./src/middleware/auth');
-const config = require('./src/config');
 
 const app = express();
 

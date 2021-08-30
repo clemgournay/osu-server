@@ -16,4 +16,5 @@ switch(process.env.ENV) {
 module.exports = {
   ENV: process.env.ENV,
   APP_DOMAIN: app_domain,
+  BEATMAP_DIR: process.env.BEATMAP_DIR
 }

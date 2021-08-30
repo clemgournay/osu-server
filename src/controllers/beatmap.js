@@ -2,7 +2,9 @@ const Beatmap = require('../models/beatmap');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
+const uniqid = require('uniqid');
 const utils = require('../utils');
+const config = require('../config');
 
 exports.index = (req, res) => {
   Beatmap.find({}, (err, beatmaps) => {
@@ -12,18 +14,73 @@ exports.index = (req, res) => {
         message: err,
       });
     } else {
+      res.json({
+        status: 'success',
+        message: 'beatmaps retrieved successfully',
+        data: beatmaps
+      });
     }
-    res.json({
-      status: 'success',
-      message: 'beatmaps retrieved successfully',
-      data: beatmaps
-    });
   });
 };
 
+exports.getMusic = (req, res) => {
+  Beatmap.findOne({orgID: req.params.org_id}, (err, beatmap) => {
+    if (err || !beatmap) {
+      res.json({
+        status: 'fail',
+        error: err
+      });
+    } else {
+      let dir = path.join(config.BEATMAP_DIR, 'raw', beatmap.orgID);
+      const filePath = path.join(dir, beatmap.audioFilename);
+      const stat = fs.statSync(filePath);
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': stat.size
+      });
+      const readStream = fs.createReadStream(filePath);
+      readStream.pipe(res);
+    }
+  });
+}
+
+exports.getDiffData = (req, res) => {
+  Beatmap.findOne({orgID: req.params.org_id}, (err, beatmap) => {
+    if (err || !beatmap) {
+      res.json({
+        status: 'fail',
+        error: err
+      });
+    } else {
+      let dir = path.join(config.BEATMAP_DIR, 'raw', beatmap.orgID);
+      const difficulty = this.getDifficulty(beatmap, req.params.diff_id);
+
+      if (!difficulty) {
+        res.json({
+          status: 'fail',
+          error: err
+        });
+      } else {
+        const filePath = path.join(dir, difficulty.path);
+        const content = fs.readFileSync(filePath, {encoding:'utf8'});
+        
+        res.json({
+          status: 'success',
+          data: content
+        });
+      } 
+    }
+  });
+}
+
 exports.add = async (req, res) => {
 
-  let extractDir = 'data/beatmaps/raw';
+  const oszDir = path.join(config.BEATMAP_DIR, 'osz');
+  utils.removeAllFilesInDir(oszDir);
+
+  let extractDir = path.join(config.BEATMAP_DIR, 'raw');
+  if (!fs.existsSync(extractDir)) fs.mkdirSync(config.extractDir);
+
   const errors = [];
   const files = req.files;
   const beatmaps = [];
@@ -34,13 +91,14 @@ exports.add = async (req, res) => {
     try {
 
       // Extract osz
-      extractDir = path.join(extractDir, ID);
-      if (!fs.existsSync(extractDir)) fs.mkdirSync(extractDir);
+      const beatmapDir = path.join(extractDir, ID);
+      if (!fs.existsSync(beatmapDir)) fs.mkdirSync(beatmapDir);
+
       const zip = new AdmZip(files[i].path);
-      zip.extractAllTo(extractDir, true);
+      zip.extractAllTo(beatmapDir, true);
 
       // Read folder content
-      const filenames = fs.readdirSync(extractDir);
+      const filenames = fs.readdirSync(beatmapDir);
       const difficulties = [];
       for (let j = 0; j < filenames.length; j++) {
         const filename = filenames[j];
@@ -48,14 +106,13 @@ exports.add = async (req, res) => {
         if (ext === 'osu') {
           const matches = filename.match(/\[(.*?)\]/g);
           const name = matches[0].replace(/\[/g, '').replace(/\]/g, '');
-          const fullPath = path.join(extractDir, filename);
-          const diffContent = fs.readFileSync(fullPath, {encoding:'utf8', flag:'r'});
-          difficulties.push({path: filename, name, data: utils.parseOSU(diffContent)});
+          difficulties.push({id: uniqid(), path: filename, name});
         }
       }
 
-      const data = difficulties[0].data;
-      console.log(data.Events);
+      const fullPath = path.join(beatmapDir, difficulties[0].path);
+      const diffContent = fs.readFileSync(fullPath, {encoding:'utf8'});
+      const data = utils.parseOSU(diffContent);
 
       const beatmap = new Beatmap({
         orgID: ID,
@@ -68,7 +125,6 @@ exports.add = async (req, res) => {
         difficulties
       });
 
-      //console.log(beatmap);
       beatmap.save((err) => {
 
         count++;
@@ -162,7 +218,7 @@ exports.update = (req, res) => {
 };
 
 exports.delete = (req, res) => {
-  /*Beatmap.deleteOne({
+  Beatmap.deleteOne({
     _id: req.params.id
   }, (err) => {
     if (err) {
@@ -173,12 +229,21 @@ exports.delete = (req, res) => {
         message: 'beatmap deleted'
       });
     }
-  });*/
-  Beatmap.deleteMany({}, (err) => {
+  });
+  /*Beatmap.deleteMany({}, (err) => {
     res.json({
       status: 'Success'
     })
-  });
-  
+  });*/
 };
+
+exports.getDifficulty = (beatmap, diffID) => {
+  let i = 0; let found = false;
+  while (!found && i < beatmap.difficulties.length) {
+    if (beatmap.difficulties[i].id === diffID) found = true;
+    else i++;
+  }
+  return (found) ? beatmap.difficulties[i] : null;
+}
+
 

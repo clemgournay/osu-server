@@ -1,6 +1,7 @@
 const Router = require('express').Router;
 const passport = require('passport');
-const multer  = require('multer')
+const multer  = require('multer');
+
 const upload = multer({dest: 'data/beatmaps/osz'});
 const { check, validationResult } = require('express-validator');
 
@@ -73,6 +74,10 @@ router.route('/beatmaps')
 router.route('/beatmaps/:id')
   .get(beatmapController.view)
   .delete(beatmapController.delete);
+router.route('/beatmaps/:org_id/music')
+  .get(beatmapController.getMusic);
+  router.route('/beatmaps/:org_id/:diff_id')
+  .get(beatmapController.getDiffData);
 
 module.exports = router;
 

@@ -25,6 +25,7 @@
     "passport": "^0.4.1",
     "passport-local": "^1.0.0",
     "path": "^0.12.7",
-    "shelljs": "^0.8.4"
+    "shelljs": "^0.8.4",
+    "uniqid": "^5.4.0"
   }
 }
