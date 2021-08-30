@@ -18,16 +18,36 @@ exports.parseOSU = (content) => {
       const partsDot = line.split(':');
       const partsComma = line.split(',');
 
-      console.log(line[0], line[0] !== '/');
       if (line[0] !== '/') {
         if (currCategory === 'HitObjects' || currCategory === 'TimingPoints' || currCategory === 'Events') {
-          //console.log('Case comma');
+          console.log('Case comma');
           if (Object.keys(data[currCategory]).length === 0) data[currCategory] = [];
+
           const partsComma = line.split(',');
+          const rightPart = [];
+
+          /*if (currCategory === 'HitObjects') {
+            console.log('HIT=OBJ')
+            partsComma.forEach((item) => {
+              item = item.replace(/^\s+/g, '').trim();
+              console.log(item);
+              if (item.split('|').length > 1) {
+                rightPart.push(item);
+              } else {
+                rightPart.push(parseInt(item));
+              }
+              console.log(rightPart);
+            });
+          } else {
+            console.log('EVENTS OR TIMING');
+            
+          }*/
           partsComma.forEach((item) => {
             item = item.replace(/^\s+/g, '').trim();
+            rightPart.push(item);
           });
-          data[currCategory].push(partsComma);
+          
+          data[currCategory].push(rightPart);
           //console.log('resultline:', `${partsComma.join(',')}`)
         } if (partsDot.length > 1 && partsComma.length > 1) {
           //console.log('Case dots and comma');

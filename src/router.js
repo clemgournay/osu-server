@@ -73,6 +73,8 @@ router.route('/beatmaps')
 router.route('/beatmaps/:id')
   .get(beatmapController.view)
   .delete(beatmapController.delete);
+router.route('/beatmaps/:org_id/music')
+  .get(beatmapController.getMusic);
 
 module.exports = router;
 

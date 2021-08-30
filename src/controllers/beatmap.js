@@ -2,6 +2,7 @@ const Beatmap = require('../models/beatmap');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
+const uniqid = require('uniqid');
 const utils = require('../utils');
 
 exports.index = (req, res) => {
@@ -21,9 +22,30 @@ exports.index = (req, res) => {
   });
 };
 
+exports.getMusic = (req, res) => {
+  Beatmap.findOne({orgID: req.params.org_id}, (err, beatmap) => {
+    if (err || !beatmap) {
+      res.json({
+        status: 'fail',
+        error: err
+      });
+    } else {
+      let dir = path.join('data', 'beatmaps', 'raw', beatmap.orgID);
+      const filePath = path.join(dir, beatmap.audioFilename);
+      const stat = fs.statSync(filePath);
+      res.writeHead(200, {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': stat.size
+      });
+      const readStream = fs.createReadStream(filePath);
+      readStream.pipe(res);
+    }
+  });
+}
+
 exports.add = async (req, res) => {
 
-  let extractDir = 'data/beatmaps/raw';
+  let extractDir = path.join('data', 'beatmaps', 'raw');
   const errors = [];
   const files = req.files;
   const beatmaps = [];
@@ -48,13 +70,13 @@ exports.add = async (req, res) => {
         if (ext === 'osu') {
           const matches = filename.match(/\[(.*?)\]/g);
           const name = matches[0].replace(/\[/g, '').replace(/\]/g, '');
-          const fullPath = path.join(extractDir, filename);
-          const diffContent = fs.readFileSync(fullPath, {encoding:'utf8', flag:'r'});
-          difficulties.push({path: filename, name, data: utils.parseOSU(diffContent)});
+          difficulties.push({id: uniqid(), path: filename, name});
         }
       }
 
-      const data = difficulties[0].data;
+      const fullPath = path.join(extractDir, filename);
+      const diffContent = fs.readFileSync(fullPath, {encoding:'utf8', flag:'r'});
+      const data = utils.parseOSU(diffContent);
       console.log(data.Events);
 
       const beatmap = new Beatmap({
@@ -162,7 +184,7 @@ exports.update = (req, res) => {
 };
 
 exports.delete = (req, res) => {
-  /*Beatmap.deleteOne({
+  Beatmap.deleteOne({
     _id: req.params.id
   }, (err) => {
     if (err) {
@@ -173,12 +195,13 @@ exports.delete = (req, res) => {
         message: 'beatmap deleted'
       });
     }
-  });*/
-  Beatmap.deleteMany({}, (err) => {
+  });
+  /*Beatmap.deleteMany({}, (err) => {
     res.json({
       status: 'Success'
     })
-  });
-  
+  });*/
 };
+
+
 
