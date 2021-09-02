@@ -48,12 +48,22 @@ exports.parseOSU = (content) => {
   return data;
 }
 
-exports.removeAllFilesInDir = (dir) => {
+exports.removeAllFilesInDir = (dir, callback) => {
+
+  console.log(dir);
   fs.readdir(dir, (err, files) => {
-    if (err) throw err;
   
-    for (const file of files) {
-      fs.unlink(path.join(dir, file));
+    if (files.length > 0) {
+      let i = 0;
+      for (const file of files) {
+        console.log(file);
+        fs.unlink(path.join(dir, file), (err) => {
+          i++;
+          if (i === files.length - 1 && callback) callback();
+        });
+      }
+    } else {
+      if (callback) callback();
     }
   });
 }

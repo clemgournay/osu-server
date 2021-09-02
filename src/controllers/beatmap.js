@@ -23,7 +23,7 @@ exports.index = (req, res) => {
   });
 };
 
-exports.getMusic = (req, res) => {
+exports.getFile = (req, res) => {
   Beatmap.findOne({orgID: req.params.org_id}, (err, beatmap) => {
     if (err || !beatmap) {
       res.json({
@@ -32,14 +32,8 @@ exports.getMusic = (req, res) => {
       });
     } else {
       let dir = path.join(config.BEATMAP_DIR, 'raw', beatmap.orgID);
-      const filePath = path.join(dir, beatmap.audioFilename);
-      const stat = fs.statSync(filePath);
-      res.writeHead(200, {
-        'Content-Type': 'audio/mpeg',
-        'Content-Length': stat.size
-      });
-      const readStream = fs.createReadStream(filePath);
-      readStream.pipe(res);
+      const filePath = path.join(dir, req.params.filename);
+      res.sendFile(path.resolve(filePath));
     }
   });
 }
@@ -121,7 +115,7 @@ exports.add = async (req, res) => {
         source: data.Metadata.Source,
         tags: data.Metadata.Tags,
         audioFilename: data.General.AudioFilename,
-        backgroundFilename: data.Events[0][2],
+        backgroundFilename: data.Events[0][2].replace(/['"]+/g, ''),
         difficulties
       });
 
@@ -218,23 +212,36 @@ exports.update = (req, res) => {
 };
 
 exports.delete = (req, res) => {
-  Beatmap.deleteOne({
-    _id: req.params.id
-  }, (err) => {
-    if (err) {
-        res.send(err);
-    } else {
+
+  Beatmap.findById(req.params.id, (err, beatmap) => {
+    if (err || !beatmap) {
       res.json({
-        status: 'success',
-        message: 'beatmap deleted'
+        status: 'fail',
+        error: err
+      });
+    } else {
+
+      const beatmapDir = path.join(config.BEATMAP_DIR, 'raw', beatmap.orgID);
+      utils.removeAllFilesInDir(beatmapDir, () => {
+        if (fs.existsSync(beatmapDir)) fs.rmdirSync(beatmapDir);
+      });
+
+      Beatmap.deleteOne({
+        _id: req.params.id
+      }, (err) => {
+        if (err) {
+            res.send(err);
+        } else {
+          res.json({
+            status: 'success',
+            message: 'beatmap deleted'
+          });
+        }
       });
     }
   });
-  /*Beatmap.deleteMany({}, (err) => {
-    res.json({
-      status: 'Success'
-    })
-  });*/
+
+  
 };
 
 exports.getDifficulty = (beatmap, diffID) => {
