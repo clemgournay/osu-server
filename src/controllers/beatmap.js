@@ -115,7 +115,7 @@ exports.add = async (req, res) => {
         source: data.Metadata.Source,
         tags: data.Metadata.Tags,
         audioFilename: data.General.AudioFilename,
-        backgroundFilename: data.Events[0][2].replace(/['"]+/g, ''),
+        backgroundFilename: (data.Events[0][0] === 'Video') ? data.Events[1][2].replace(/['"]+/g, '') : data.Events[0][2].replace(/['"]+/g, ''),
         difficulties
       });
 
@@ -167,7 +167,7 @@ exports.new = (req, res) => {
 }
 
 exports.view = (req, res) => {
-  Beatmap.findById(req.params.id, (err, beatmap) => {
+  Beatmap.findOne({orgID: req.params.id}, (err, beatmap) => {
     if (err) {
       res.send(err);
     }
